@@ -9,20 +9,23 @@
     <h1 id="version-text">Загрузка...</h1>
     <script>
         // Проверяем активную версию через симлинк
-        fetch('/current')
-            .then(response => response.text())
-            .then(text => {
-                if (text.includes('Test_blue')) {
-                    document.getElementById('version-text').innerHTML = "Синяя версия (Blue)";
-                    document.body.style.backgroundColor = "#cce5ff";
-                } else {
-                    document.getElementById('version-text').innerHTML = "Зелёная версия (Green)";
-                    document.body.style.backgroundColor = "#d4edda";
-                }
-            })
-            .catch(err => {
-                document.getElementById('version-text').innerHTML = "Ошибка загрузки версии";
-            });
+    fetch('/current_version.txt')
+        .then(response => response.text())
+        .then(text => {
+            if (text.includes('Test_blue')) {
+                document.getElementById('version-text').innerHTML = "Синяя версия (Blue)";
+            document.body.style.backgroundColor = "#cce5ff";
+            } else if (text.includes('Test_green')) {
+                document.getElementById('version-text').innerHTML = "Зелёная версия (Green)";
+                document.body.style.backgroundColor = "#d4edda";
+            } else {
+                document.getElementById('version-text').innerHTML = "Неизвестная версия";
+                document.body.style.backgroundColor = "#f8d7da";
+            }
+        })
+        .catch(err => {
+            document.getElementById('version-text').innerHTML = "Ошибка загрузки версии";
+        });
     </script>
 </body>
 </html>
