@@ -12,42 +12,42 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
         
-      - name: Настройка SSH
+      - name: install ssh keys
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SECRET_PRIVATE_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H ${{ secrets.SECRET_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Обновляем код на сервере
+      - name: Code deploy
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SECRET_HOST }}
           username: ${{ secrets.SECRET_USER }}
           key: ${{ secrets.SECRET_PRIVATE_KEY }}
           script: |
-            echo "Запускаем обновление кода..."
+            echo "start code deploying..."
             sudo /var/www/update_code.sh
 
-      - name: Обновляем симлинк
+      - name: Simlink update
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SECRET_HOST }}
           username: ${{ secrets.SECRET_USER }}
           key: ${{ secrets.SECRET_PRIVATE_KEY }}
           script: |
-            echo "Запускаем обновление симлинка..."
+            echo "start simlink update..."
             sudo /var/www/update_symlink.sh
 
-      - name: Проверяем результат
+      - name: Check result
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SECRET_HOST }}
           username: ${{ secrets.SECRET_USER }}
           key: ${{ secrets.SECRET_PRIVATE_KEY }}
           script: |
-            echo "Проверяем симлинк:"
+            echo "simlink check:"
             ls -l /var/www/current
             readlink -f /var/www/current
-            echo "Текущая версия:"
+            echo "current version:"
             cat /var/www/current_version.txt
