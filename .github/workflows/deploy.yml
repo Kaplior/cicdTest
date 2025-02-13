@@ -19,26 +19,27 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H ${{ secrets.SECRET_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Получаем текущую версию (target_version)
+      - name: Получаем текущую версию (current_version)
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SECRET_HOST }}
           username: ${{ secrets.SECRET_USER }}
           key: ${{ secrets.SECRET_PRIVATE_KEY }}
           script: |
-            if [ -f ~/target_version.txt ]; then
-              cat ~/target_version.txt
+            if [ -f /var/www/current_version.txt ]; then
+              cat /var/www/current_version.txt
             else
-              echo "Test_blue" > ~/target_version.txt
+              echo "Test_blue" > /var/www/current_version.txt
+              cat /var/www/current_version.txt
             fi
 
-      - name: Скачиваем target_version.txt
+      - name: Скачиваем current_version.txt
         run: |
-          scp -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key ${{ secrets.SECRET_USER }}@${{ secrets.SECRET_HOST }}:~/target_version.txt .
+          scp -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key ${{ secrets.SECRET_USER }}@${{ secrets.SECRET_HOST }}:/var/www/current_version.txt .
 
       - name: Определяем target_version
         run: |
-          CURRENT_VERSION=$(cat target_version.txt)
+          CURRENT_VERSION=$(cat current_version.txt)
           echo "Текущая версия: $CURRENT_VERSION"
           if [ "$CURRENT_VERSION" == "Test_blue" ]; then
             TARGET_VERSION="Test_green"
@@ -58,7 +59,7 @@ jobs:
           source: ./index.html
           target: /var/www/${{ env.TARGET_VERSION }}
 
-      - name: Обновляем симлинк
+      - name: Обновляем симлинк и current_version.txt
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SECRET_HOST }}
@@ -67,17 +68,10 @@ jobs:
           script: |
             echo "Обновляем симлинк на ${TARGET_VERSION}"
             sudo ln -sfn "/var/www/${TARGET_VERSION}" /var/www/current
+            echo "${TARGET_VERSION}" | sudo tee /var/www/current_version.txt
+            echo "Записали в current_version.txt:"
+            cat /var/www/current_version.txt
+            echo "Проверяем симлинк:"
             ls -l /var/www/current
             readlink -f /var/www/current
             sudo systemctl restart nginx
-
-      - name: Обновляем target_version.txt на сервере
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.SECRET_HOST }}
-          username: ${{ secrets.SECRET_USER }}
-          key: ${{ secrets.SECRET_PRIVATE_KEY }}
-          script: |
-            echo "Обновляем target_version.txt на ${TARGET_VERSION}"
-            echo "${TARGET_VERSION}" > ~/target_version.txt
-            cat ~/target_version.txt
