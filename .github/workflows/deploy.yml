@@ -22,23 +22,18 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H ${{ secrets.SECRET_HOST }} >> ~/.ssh/known_hosts
 
-      # 3. Получаем текущее значение current_version.txt с сервера
+      # 3. Подключаемся к серверу и присваиваем значение CURRENT_VERSION
       - name: Получаем текущее значение current_version.txt
-        id: get-current-version
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SECRET_HOST }}
           username: ${{ secrets.SECRET_USER }}
           key: ${{ secrets.SECRET_PRIVATE_KEY }}
-          script: cat /var/www/current_version.txt > current_version.txt
-          
-      # 4. Сохраняем значение в переменную окружения
-      - name: Сохраняем CURRENT_VERSION в переменную
-        run: |
-          CURRENT_VERSION=$(cat current_version.txt)
-          echo "CURRENT_VERSION=$CURRENT_VERSION" >> $GITHUB_ENV
+          script: |
+            CURRENT_VERSION=$(cat /var/www/current_version.txt)
+            echo "CURRENT_VERSION=$CURRENT_VERSION" >> $GITHUB_ENV
 
-      # 5. Определяем TARGET_VERSION в зависимости от текущей версии
+      # 4. Определяем TARGET_VERSION в зависимости от текущей версии
       - name: Определяем TARGET_VERSION
         run: |
           echo "Текущая версия: $CURRENT_VERSION"
@@ -49,7 +44,7 @@ jobs:
           fi
           echo "TARGET_VERSION=$TARGET_VERSION" >> $GITHUB_ENV
 
-      # 6. Выполняем git pull на сервере в нужной папке
+      # 5. Выполняем git pull на сервере в нужной папке
       - name: Обновляем index.html через git pull
         uses: appleboy/ssh-action@master
         with:
@@ -65,7 +60,7 @@ jobs:
             git pull origin main
             echo "index.html обновлён!"
 
-      # 7. Выполняем скрипт на сервере для обновления симлинка
+      # 6. Выполняем скрипт на сервере для обновления симлинка
       - name: Выполняем скрипт на сервере
         uses: appleboy/ssh-action@master
         with:
@@ -76,7 +71,7 @@ jobs:
             echo "Запускаем обновление симлинка..."
             sudo /var/www/update_symlink.sh
 
-      # 8. Проверяем результат деплоя
+      # 7. Проверяем результат деплоя
       - name: Проверяем результат
         uses: appleboy/ssh-action@master
         with:
