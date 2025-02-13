@@ -9,7 +9,7 @@
     <h1 id="version-text">Загрузка...</h1>
     <script>
         // Проверяем активную версию через симлинк
-    fetch('/current_version.txt')
+    fetch('../current_version.txt')
         .then(response => response.text())
         .then(text => {
             if (text.includes('Test_blue')) {
