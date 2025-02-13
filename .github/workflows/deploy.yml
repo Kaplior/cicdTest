@@ -29,14 +29,14 @@ jobs:
             echo "start code deploying..."
             sudo /var/www/update_code.sh
 
-      - name: Simlink update
+      - name: Symlink update
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SECRET_HOST }}
           username: ${{ secrets.SECRET_USER }}
           key: ${{ secrets.SECRET_PRIVATE_KEY }}
           script: |
-            echo "start simlink update..."
+            echo "start symlink update..."
             sudo /var/www/update_symlink.sh
 
       - name: Check result
@@ -46,7 +46,7 @@ jobs:
           username: ${{ secrets.SECRET_USER }}
           key: ${{ secrets.SECRET_PRIVATE_KEY }}
           script: |
-            echo "simlink check:"
+            echo "symlink check:"
             ls -l /var/www/current
             readlink -f /var/www/current
             echo "current version:"
