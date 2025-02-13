@@ -13,6 +13,19 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
+    - name: Test SSH Connection
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.SECRET_HOST }}
+        username: ${{ secrets.SECRET_USER }}
+        key: ${{ secrets.SECRET_PRIVATE_KEY }}
+        port: 22
+        script: |
+          echo "Проверка соединения с сервером..."
+          hostname
+          whoami
+          echo "Соединение успешно установлено!"
+
     - name: Determine Active Version
       uses: appleboy/ssh-action@master
       with:
@@ -35,6 +48,7 @@ jobs:
         key: ${{ secrets.SECRET_PRIVATE_KEY }}
         port: 22
         script: cat ~/target_version.txt
+      register_outputs: true
       id: target_version
 
     - name: Copy files to target version
@@ -43,9 +57,9 @@ jobs:
         SSH_PRIVATE_KEY: ${{ secrets.SECRET_PRIVATE_KEY }}
         REMOTE_HOST: ${{ secrets.SECRET_HOST }}
         REMOTE_USER: ${{ secrets.SECRET_USER }}
-        TARGET: /var/www/Test_${{ steps.target_version.outputs.stdout }}/
       with:
         source: ./index.html
+        target: /var/www/Test_${{ steps.target_version.outputs.result }}/
 
     - name: Switch Nginx to New Version
       uses: appleboy/ssh-action@master
@@ -55,5 +69,5 @@ jobs:
         key: ${{ secrets.SECRET_PRIVATE_KEY }}
         port: 22
         script: |
-          sudo ln -sfn /var/www/Test_${{ steps.target_version.outputs.stdout }} /var/www/current
+          sudo ln -sfn /var/www/Test_${{ steps.target_version.outputs.result }} /var/www/current
           sudo systemctl reload nginx
