@@ -27,6 +27,7 @@ jobs:
           echo "Соединение успешно установлено!"
 
     - name: Determine Target Version
+      id: set_version
       uses: appleboy/ssh-action@master
       with:
         host: ${{ secrets.SECRET_HOST }}
@@ -34,19 +35,13 @@ jobs:
         key: ${{ secrets.SECRET_PRIVATE_KEY }}
         port: 22
         script: |
-          CURRENT_VERSION=$(readlink /var/www/current)
+          CURRENT_VERSION=$(readlink /var/www/current || echo "none")
           if [[ "$CURRENT_VERSION" == "/var/www/Test_blue" ]]; then
             TARGET_VERSION="Test_green"
           else
             TARGET_VERSION="Test_blue"
           fi
-          echo "TARGET_VERSION=$TARGET_VERSION" > target_version.txt
-      continue-on-error: false
-
-    - name: Get Target Version
-      run: cat target_version.txt
-      id: version
-      continue-on-error: false
+          echo "TARGET_VERSION=${TARGET_VERSION}" >> $GITHUB_ENV
 
     - name: Copy files to target version
       uses: easingthemes/ssh-deploy@main
@@ -56,7 +51,7 @@ jobs:
         REMOTE_USER: ${{ secrets.SECRET_USER }}
       with:
         source: ./index.html
-        target: /var/www/${{ steps.version.outputs.TARGET_VERSION }}/
+        target: /var/www/${{ env.TARGET_VERSION }}/
 
     - name: Switch Nginx to New Version
       uses: appleboy/ssh-action@master
