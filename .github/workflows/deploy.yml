@@ -1,1 +1,51 @@
-a
+name: CI/CD Blue-Green Deploy
+
+on:
+  push:
+    branches:
+      - main  # Замени на master, если используешь master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Install SSH key
+      uses: webfactory/ssh-agent@v0.8.1
+      with:
+        ssh-private-key: ${{ secrets.SECRET_PRIVATE_KEY }}
+
+    - name: Determine Active Version
+      run: |
+        ssh -o StrictHostKeyChecking=no ${{ secrets.SECRET_USER }}@${{ secrets.SECRET_HOST }} '
+          if [ "$(readlink /var/www/current)" = "/var/www/Test_blue" ]; then
+            echo "green" > ~/target_version.txt
+          else
+            echo "blue" > ~/target_version.txt
+          fi
+        '
+
+    - name: Get Target Version
+      run: |
+        ssh -o StrictHostKeyChecking=no ${{ secrets.SECRET_USER }}@${{ secrets.SECRET_HOST }} 'cat ~/target_version.txt'
+      id: target_version
+
+    - name: Deploy to Target Version
+      uses: burnett01/rsync-deployments@5.2
+      with:
+        switches: -avzr --delete
+        path: ./  # Что синхронизируем
+        remote_path: /var/www/Test_${{ steps.target_version.outputs.stdout }}  # В какую папку деплоим
+        remote_host: ${{ secrets.SECRET_HOST }}
+        remote_user: ${{ secrets.SECRET_USER }}
+        remote_key: ${{ secrets.SECRET_PRIVATE_KEY }}
+
+    - name: Reload Nginx with New Version
+      run: |
+        ssh -o StrictHostKeyChecking=no ${{ secrets.SECRET_USER }}@${{ secrets.SECRET_HOST }} '
+          sudo ln -sfn /var/www/Test_${{ steps.target_version.outputs.stdout }} /var/www/current
+          sudo systemctl reload nginx
+        '
