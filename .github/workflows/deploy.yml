@@ -40,13 +40,20 @@ jobs:
           else
             TARGET_VERSION="Test_blue"
           fi
-          echo "TARGET_VERSION=${TARGET_VERSION}" > ~/target_version.txt
+          echo "${TARGET_VERSION}" > ~/target_version.txt
 
     - name: Retrieve Target Version
-      run: |
-        scp -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key ${{ secrets.SECRET_USER }}@${{ secrets.SECRET_HOST }}:~/target_version.txt .
-        cat target_version.txt
-        echo "TARGET_VERSION=$(cat target_version.txt)" >> $GITHUB_ENV
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.SECRET_HOST }}
+        username: ${{ secrets.SECRET_USER }}
+        key: ${{ secrets.SECRET_PRIVATE_KEY }}
+        port: 22
+        script: cat ~/target_version.txt
+      id: get_target_version
+
+    - name: Set Target Version
+      run: echo "TARGET_VERSION=${{ steps.get_target_version.outputs.stdout }}" >> $GITHUB_ENV
 
     - name: Copy files to target version
       uses: easingthemes/ssh-deploy@main
