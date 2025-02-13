@@ -27,7 +27,6 @@ jobs:
           echo "Соединение успешно установлено!"
 
     - name: Determine Target Version
-      id: set_version
       uses: appleboy/ssh-action@master
       with:
         host: ${{ secrets.SECRET_HOST }}
@@ -41,7 +40,13 @@ jobs:
           else
             TARGET_VERSION="Test_blue"
           fi
-          echo "TARGET_VERSION=${TARGET_VERSION}" >> $GITHUB_ENV
+          echo "TARGET_VERSION=${TARGET_VERSION}" > ~/target_version.txt
+
+    - name: Retrieve Target Version
+      run: |
+        scp -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key ${{ secrets.SECRET_USER }}@${{ secrets.SECRET_HOST }}:~/target_version.txt .
+        cat target_version.txt
+        echo "TARGET_VERSION=$(cat target_version.txt)" >> $GITHUB_ENV
 
     - name: Copy files to target version
       uses: easingthemes/ssh-deploy@main
