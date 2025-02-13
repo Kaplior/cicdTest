@@ -26,6 +26,12 @@ jobs:
           whoami
           echo "Соединение успешно установлено!"
 
+    - name: Add SSH Key
+      run: |
+        echo "${{ secrets.SECRET_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+        chmod 600 ~/.ssh/deploy_key
+        ssh-keyscan -H ${{ secrets.SECRET_HOST }} >> ~/.ssh/known_hosts
+
     - name: Determine Active Version
       id: version_check
       uses: appleboy/ssh-action@master
