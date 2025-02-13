@@ -26,7 +26,8 @@ jobs:
           whoami
           echo "Соединение успешно установлено!"
 
-    - name: Get Target Version
+    - name: Determine Target Version
+      id: version_check
       uses: appleboy/ssh-action@master
       with:
         host: ${{ secrets.SECRET_HOST }}
@@ -35,17 +36,14 @@ jobs:
         port: 22
         script: |
           if [ "$(readlink /var/www/current)" = "/var/www/Test_blue" ]; then
-            echo "green" > ~/target_version.txt
+            echo "green"
           else
-            echo "blue" > ~/target_version.txt
+            echo "blue"
           fi
+      register-output: target_version
 
-    - name: Get Target Version (Local)
-      run: |
-        echo "Получаем target_version..."
-        ssh -i <(echo "${{ secrets.SECRET_PRIVATE_KEY }}") -o StrictHostKeyChecking=no ${{ secrets.SECRET_USER }}@${{ secrets.SECRET_HOST }} 'cat ~/target_version.txt' > target_version.txt
-        cat target_version.txt
-        echo "target_version=$(cat target_version.txt)" >> $GITHUB_ENV
+    - name: Set Target Version
+      run: echo "target_version=${{ steps.version_check.outputs.target_version }}" >> $GITHUB_ENV
 
     - name: Copy files to target version
       uses: easingthemes/ssh-deploy@main
