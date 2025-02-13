@@ -8,10 +8,13 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    
     steps:
+      # 1. Клонируем репозиторий
       - name: Checkout code
         uses: actions/checkout@v3
         
+      # 2. Настройка SSH для подключения к серверу
       - name: Настройка SSH вручную
         run: |
           mkdir -p ~/.ssh
@@ -19,16 +22,46 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H ${{ secrets.SECRET_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Копируем index.html на сервер
-        uses: easingthemes/ssh-deploy@main
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.SECRET_PRIVATE_KEY }}
-          REMOTE_HOST: ${{ secrets.SECRET_HOST }}
-          REMOTE_USER: ${{ secrets.SECRET_USER }}
-          TARGET: /var/www/Test_green  # Деплоим сразу в Test_green
+      # 3. Получаем текущее значение current_version.txt с сервера
+      - name: Получаем текущее значение current_version.txt
+        id: get-current-version
+        uses: appleboy/ssh-action@master
         with:
-          source: ./index.html
+          host: ${{ secrets.SECRET_HOST }}
+          username: ${{ secrets.SECRET_USER }}
+          key: ${{ secrets.SECRET_PRIVATE_KEY }}
+          script: cat /var/www/current_version.txt
+        register: { output: result } # Сохраняем вывод в result
 
+      # 4. Определяем TARGET_VERSION в зависимости от текущей версии
+      - name: Определяем TARGET_VERSION
+        run: |
+          CURRENT_VERSION="${{ steps.get-current-version.outputs.result }}"
+          echo "Текущая версия: $CURRENT_VERSION"
+          if [ "$CURRENT_VERSION" == "Test_blue" ]; then
+            TARGET_VERSION="Test_green"
+          else
+            TARGET_VERSION="Test_blue"
+          fi
+          echo "TARGET_VERSION=$TARGET_VERSION" >> $GITHUB_ENV
+
+      # 5. Выполняем git pull на сервере в нужной папке
+      - name: Обновляем index.html через git pull
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SECRET_HOST }}
+          username: ${{ secrets.SECRET_USER }}
+          key: ${{ secrets.SECRET_PRIVATE_KEY }}
+          script: |
+            echo "Переходим в папку $TARGET_VERSION"
+            cd /var/www/$TARGET_VERSION
+            echo "Сбрасываем все локальные изменения..."
+            git reset --hard
+            echo "Получаем последние изменения из репозитория..."
+            git pull
+            echo "index.html обновлён!"
+
+      # 6. Выполняем скрипт на сервере для обновления симлинка
       - name: Выполняем скрипт на сервере
         uses: appleboy/ssh-action@master
         with:
@@ -39,6 +72,7 @@ jobs:
             echo "Запускаем обновление симлинка..."
             sudo /var/www/update_symlink.sh
 
+      # 7. Проверяем результат деплоя
       - name: Проверяем результат
         uses: appleboy/ssh-action@master
         with:
