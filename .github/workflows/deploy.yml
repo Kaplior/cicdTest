@@ -12,10 +12,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
         
-      - name: Настройка SSH
-        uses: webfactory/ssh-agent@v0.8.1
-        with:
-          ssh-private-key: ${{ secrets.SECRET_PRIVATE_KEY }}
+      - name: Настройка SSH вручную
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SECRET_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.SECRET_HOST }} >> ~/.ssh/known_hosts
 
       - name: Получаем текущую версию (target_version)
         uses: appleboy/ssh-action@master
