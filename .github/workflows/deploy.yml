@@ -27,7 +27,7 @@ jobs:
           key: ${{ secrets.SECRET_PRIVATE_KEY }}
           script: |
             echo "start code deploying..."
-            sudo /var/www/update_code.sh
+            sudo /var/www/deploy.sh
 
       - name: Symlink update
         uses: appleboy/ssh-action@master
