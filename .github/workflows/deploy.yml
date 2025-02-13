@@ -41,11 +41,14 @@ jobs:
             echo "blue" > ~/target_version.txt
           fi
           cat ~/target_version.txt
-      continue-on-error: false
 
     - name: Get Target Version
       id: get_target
-      run: echo "target_version=$(ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.SECRET_USER }}@${{ secrets.SECRET_HOST }} 'cat ~/target_version.txt')" >> $GITHUB_ENV
+      run: |
+        echo "Получаем target_version..."
+        target_version=$(ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.SECRET_USER }}@${{ secrets.SECRET_HOST }} 'cat ~/target_version.txt')
+        echo "target_version=$target_version" >> $GITHUB_ENV
+        echo "Target version: $target_version"
 
     - name: Copy files to target version
       uses: easingthemes/ssh-deploy@main
@@ -65,5 +68,6 @@ jobs:
         key: ${{ secrets.SECRET_PRIVATE_KEY }}
         port: 22
         script: |
+          echo "Переключение Nginx на Test_${{ env.target_version }}..."
           sudo ln -sfn /var/www/Test_${{ env.target_version }} /var/www/current
           sudo systemctl reload nginx
