@@ -46,6 +46,7 @@ jobs:
             TARGET_VERSION="Test_blue"
           fi
           echo "TARGET_VERSION=${TARGET_VERSION}" >> $GITHUB_ENV
+          echo "Следующая версия: $TARGET_VERSION"
 
       - name: Копируем index.html на сервер
         uses: easingthemes/ssh-deploy@main
@@ -65,14 +66,16 @@ jobs:
           key: ${{ secrets.SECRET_PRIVATE_KEY }}
           script: |
             set -e
-            TARGET_VERSION=$(cat ~/target_version.txt)
-            echo "TARGET_VERSION=${TARGET_VERSION}"
-            if [ -z "${TARGET_VERSION}" ]; then
-              echo "Ошибка: TARGET_VERSION не определён!"
-              exit 1
-            fi
             echo "Обновляем симлинк на ${TARGET_VERSION}"
             sudo ln -sfn "/var/www/${TARGET_VERSION}" /var/www/current
             ls -l /var/www/current
-            echo "${TARGET_VERSION}" > ~/target_version.txt
             sudo systemctl restart nginx
+
+      - name: Обновляем target_version.txt на сервере
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SECRET_HOST }}
+          username: ${{ secrets.SECRET_USER }}
+          key: ${{ secrets.SECRET_PRIVATE_KEY }}
+          script: |
+            echo "${TARGET_VERSION}" > ~/target_version.txt
