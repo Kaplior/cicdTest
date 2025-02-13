@@ -19,6 +19,7 @@ jobs:
         host: ${{ secrets.SECRET_HOST }}
         username: ${{ secrets.SECRET_USER }}
         key: ${{ secrets.SECRET_PRIVATE_KEY }}
+        port: 22
         script: |
           if [ "$(readlink /var/www/current)" = "/var/www/Test_blue" ]; then
             echo "green" > ~/target_version.txt
@@ -32,6 +33,7 @@ jobs:
         host: ${{ secrets.SECRET_HOST }}
         username: ${{ secrets.SECRET_USER }}
         key: ${{ secrets.SECRET_PRIVATE_KEY }}
+        port: 22
         script: cat ~/target_version.txt
       id: target_version
 
@@ -51,6 +53,7 @@ jobs:
         host: ${{ secrets.SECRET_HOST }}
         username: ${{ secrets.SECRET_USER }}
         key: ${{ secrets.SECRET_PRIVATE_KEY }}
+        port: 22
         script: |
           sudo ln -sfn /var/www/Test_${{ steps.target_version.outputs.stdout }} /var/www/current
           sudo systemctl reload nginx
