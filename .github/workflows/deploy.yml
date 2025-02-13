@@ -13,7 +13,21 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
+    - name: Test SSH Connection
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.SECRET_HOST }}
+        username: ${{ secrets.SECRET_USER }}
+        key: ${{ secrets.SECRET_PRIVATE_KEY }}
+        port: 22
+        script: |
+          echo "Проверка соединения с сервером..."
+          hostname
+          whoami
+          echo "Соединение успешно установлено!"
+
     - name: Determine Active Version
+      id: version_check
       uses: appleboy/ssh-action@master
       with:
         host: ${{ secrets.SECRET_HOST }}
@@ -26,16 +40,12 @@ jobs:
           else
             echo "blue" > ~/target_version.txt
           fi
+          cat ~/target_version.txt
+      continue-on-error: false
 
     - name: Get Target Version
-      uses: appleboy/ssh-action@master
-      with:
-        host: ${{ secrets.SECRET_HOST }}
-        username: ${{ secrets.SECRET_USER }}
-        key: ${{ secrets.SECRET_PRIVATE_KEY }}
-        port: 22
-        script: cat ~/target_version.txt
-      id: target_version
+      id: get_target
+      run: echo "target_version=$(ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.SECRET_USER }}@${{ secrets.SECRET_HOST }} 'cat ~/target_version.txt')" >> $GITHUB_ENV
 
     - name: Copy files to target version
       uses: easingthemes/ssh-deploy@main
@@ -43,9 +53,9 @@ jobs:
         SSH_PRIVATE_KEY: ${{ secrets.SECRET_PRIVATE_KEY }}
         REMOTE_HOST: ${{ secrets.SECRET_HOST }}
         REMOTE_USER: ${{ secrets.SECRET_USER }}
-        TARGET: /var/www/Test_${{ steps.target_version.outputs.stdout }}/
       with:
         source: ./index.html
+        target: /var/www/Test_${{ env.target_version }}/
 
     - name: Switch Nginx to New Version
       uses: appleboy/ssh-action@master
@@ -55,5 +65,5 @@ jobs:
         key: ${{ secrets.SECRET_PRIVATE_KEY }}
         port: 22
         script: |
-          sudo ln -sfn /var/www/Test_${{ steps.target_version.outputs.stdout }} /var/www/current
+          sudo ln -sfn /var/www/Test_${{ env.target_version }} /var/www/current
           sudo systemctl reload nginx
