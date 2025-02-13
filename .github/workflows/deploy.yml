@@ -24,19 +24,22 @@ jobs:
 
       # 3. Получаем текущее значение current_version.txt с сервера
       - name: Получаем текущее значение current_version.txt
-        id: get-current-version
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SECRET_HOST }}
           username: ${{ secrets.SECRET_USER }}
           key: ${{ secrets.SECRET_PRIVATE_KEY }}
           script: cat /var/www/current_version.txt
-        register: { output: result } # Сохраняем вывод в result
+        # Захватываем вывод в переменную GITHUB_ENV
+        continue-on-error: false
+        env:
+          OUTPUT_FILE: current_version.txt
+        run: |
+          echo "CURRENT_VERSION=$(cat current_version.txt)" >> $GITHUB_ENV
 
       # 4. Определяем TARGET_VERSION в зависимости от текущей версии
       - name: Определяем TARGET_VERSION
         run: |
-          CURRENT_VERSION="${{ steps.get-current-version.outputs.result }}"
           echo "Текущая версия: $CURRENT_VERSION"
           if [ "$CURRENT_VERSION" == "Test_blue" ]; then
             TARGET_VERSION="Test_green"
@@ -58,7 +61,7 @@ jobs:
             echo "Сбрасываем все локальные изменения..."
             git reset --hard
             echo "Получаем последние изменения из репозитория..."
-            git pull
+            git pull 
             echo "index.html обновлён!"
 
       # 6. Выполняем скрипт на сервере для обновления симлинка
