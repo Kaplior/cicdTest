@@ -13,7 +13,7 @@
         .then(response => response.text())
         .then(text => {
             if (text.includes('Test_blue')) {
-                document.getElementById('version-text').innerHTML = "Синяя версия (Blue)!";
+                document.getElementById('version-text').innerHTML = "Синяя версия (Blue)";
             document.body.style.backgroundColor = "#cce5ff";
             } else if (text.includes('Test_green')) {
                 document.getElementById('version-text').innerHTML = "Зелёная версия (Green)!";
