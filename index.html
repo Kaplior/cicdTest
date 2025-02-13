@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blue-Green Deployment</title>
+</head>
+<body>
+    <h1 id="version-text">Загрузка...</h1>
+    <script>
+        // Проверяем активную версию через симлинк
+        fetch('/current')
+            .then(response => response.text())
+            .then(text => {
+                if (text.includes('Test_blue')) {
+                    document.getElementById('version-text').innerHTML = "Синяя версия (Blue)";
+                    document.body.style.backgroundColor = "#cce5ff";
+                } else {
+                    document.getElementById('version-text').innerHTML = "Зелёная версия (Green)";
+                    document.body.style.backgroundColor = "#d4edda";
+                }
+            })
+            .catch(err => {
+                document.getElementById('version-text').innerHTML = "Ошибка загрузки версии";
+            });
+    </script>
+</body>
+</html>
