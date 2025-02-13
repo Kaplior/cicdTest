@@ -53,9 +53,9 @@ jobs:
           SSH_PRIVATE_KEY: ${{ secrets.SECRET_PRIVATE_KEY }}
           REMOTE_HOST: ${{ secrets.SECRET_HOST }}
           REMOTE_USER: ${{ secrets.SECRET_USER }}
-          TARGET: /var/www/${{ env.TARGET_VERSION }}
         with:
           source: ./index.html
+          target: /var/www/${{ env.TARGET_VERSION }}
 
       - name: Обновляем симлинк
         uses: appleboy/ssh-action@master
@@ -64,6 +64,15 @@ jobs:
           username: ${{ secrets.SECRET_USER }}
           key: ${{ secrets.SECRET_PRIVATE_KEY }}
           script: |
+            set -e
+            TARGET_VERSION=$(cat ~/target_version.txt)
+            echo "TARGET_VERSION=${TARGET_VERSION}"
+            if [ -z "${TARGET_VERSION}" ]; then
+              echo "Ошибка: TARGET_VERSION не определён!"
+              exit 1
+            fi
+            echo "Обновляем симлинк на ${TARGET_VERSION}"
             sudo ln -sfn "/var/www/${TARGET_VERSION}" /var/www/current
+            ls -l /var/www/current
             echo "${TARGET_VERSION}" > ~/target_version.txt
             sudo systemctl restart nginx
