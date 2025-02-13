@@ -1,9 +1,9 @@
-name: CI/CD Blue-Green Deploy
+name: Blue-Green Deploy Nginx
 
 on:
   push:
     branches:
-      - main  # Замени на master, если используешь master
+      - main
 
 jobs:
   deploy:
@@ -13,39 +13,44 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Install SSH key
-      uses: webfactory/ssh-agent@v0.8.1
-      with:
-        ssh-private-key: ${{ secrets.SECRET_PRIVATE_KEY }}
-
     - name: Determine Active Version
-      run: |
-        ssh -o StrictHostKeyChecking=no ${{ secrets.SECRET_USER }}@${{ secrets.SECRET_HOST }} '
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.SECRET_HOST }}
+        username: ${{ secrets.SECRET_USER }}
+        key: ${{ secrets.SECRET_PRIVATE_KEY }}
+        script: |
           if [ "$(readlink /var/www/current)" = "/var/www/Test_blue" ]; then
             echo "green" > ~/target_version.txt
           else
             echo "blue" > ~/target_version.txt
           fi
-        '
 
     - name: Get Target Version
-      run: |
-        ssh -o StrictHostKeyChecking=no ${{ secrets.SECRET_USER }}@${{ secrets.SECRET_HOST }} 'cat ~/target_version.txt'
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.SECRET_HOST }}
+        username: ${{ secrets.SECRET_USER }}
+        key: ${{ secrets.SECRET_PRIVATE_KEY }}
+        script: cat ~/target_version.txt
       id: target_version
 
-    - name: Deploy to Target Version
-      uses: burnett01/rsync-deployments@5.2
+    - name: Copy files to target version
+      uses: easingthemes/ssh-deploy@main
+      env:
+        SSH_PRIVATE_KEY: ${{ secrets.SECRET_PRIVATE_KEY }}
+        REMOTE_HOST: ${{ secrets.SECRET_HOST }}
+        REMOTE_USER: ${{ secrets.SECRET_USER }}
+        TARGET: /var/www/Test_${{ steps.target_version.outputs.stdout }}/
       with:
-        switches: -avzr --delete
-        path: ./  # Что синхронизируем
-        remote_path: /var/www/Test_${{ steps.target_version.outputs.stdout }}  # В какую папку деплоим
-        remote_host: ${{ secrets.SECRET_HOST }}
-        remote_user: ${{ secrets.SECRET_USER }}
-        remote_key: ${{ secrets.SECRET_PRIVATE_KEY }}
+        source: ./index.html
 
-    - name: Reload Nginx with New Version
-      run: |
-        ssh -o StrictHostKeyChecking=no ${{ secrets.SECRET_USER }}@${{ secrets.SECRET_HOST }} '
+    - name: Switch Nginx to New Version
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.SECRET_HOST }}
+        username: ${{ secrets.SECRET_USER }}
+        key: ${{ secrets.SECRET_PRIVATE_KEY }}
+        script: |
           sudo ln -sfn /var/www/Test_${{ steps.target_version.outputs.stdout }} /var/www/current
           sudo systemctl reload nginx
-        '
